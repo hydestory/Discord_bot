@@ -5,30 +5,33 @@ import random
 import os
 from cmds.main import main
 from cmds.react import react
+from cmds.event import event
+from cmds.task import task
 
 with(open('setting.json','r',encoding='utf8')) as jfile:
     jdata=json.load(jfile)
 
 intents = discord.Intents.default()
 intents.message_content = True
+intents.dm_messages = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 @bot.event
 async def on_ready():
-    await bot.add_cog(main(bot))
-    await bot.add_cog(react(bot))
+    cogs = [main, react, event, task]
+    for cog in cogs:
+        await bot.add_cog(cog(bot))
     print('Bot is ready.')
 
-@bot.event
-async def member_join(member):
-    channel = bot.get_channel(int(jdata['JOIN']))
-    await channel.send(f'{member} has joined the server.')
+@bot.command()
+async def unload(ctx, cog):
+    await bot.remove_cog(f'cmds.{cog}')
+    await ctx.send(f'Unload {cog} done.')
 
-@bot.event
-async def member_remove(member):
-    channel = bot.get_channel(int(jdata['LEAVE']))
-    await channel.send(f'{member} has left the server.')
-
+@bot.command()
+async def load(ctx, cog):
+    await bot.add_cog(f'cmds.{cog}')
+    await ctx.send(f'Load {cog} done.')
 
 
 
