@@ -1,6 +1,8 @@
 import discord
 import json
 import openai
+import aiohttp
+import io
 
 from discord.ext import commands
 from core.classes import Cog_Extensions
@@ -71,5 +73,31 @@ class main(Cog_Extensions):
             memory.pop(0)
 
         await ctx.send(answer)
+
+    @commands.command()
+    async def generate_image(self,ctx,*, prompt):
+        '''Generate image'''
+        async with ctx.channel.typing():
+            # 调用 DALL-E API 生成图像
+            response = openai.Image.create(
+                model="image-alpha-001",
+                prompt=prompt,
+                n=1,
+                size="512x512",
+                response_format="url",
+            )
+
+            image_url = response['data'][0]['url']
+
+            # 使用 aiohttp 下载图像
+            async with aiohttp.ClientSession() as session:
+                async with session.get(image_url) as resp:
+                    if resp.status != 200:
+                        return await ctx.send('Could not download image...')
+                    data = await resp.read()
+
+                    # 将图像发送到 Discord 频道
+                    await ctx.send(file=discord.File(fp=io.BytesIO(data), filename="generated_image.png"))
+
 #def setup(bot):
  #   bot.add_cog(main(bot))
