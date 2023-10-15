@@ -12,10 +12,22 @@ with(open('setting.json','r',encoding='utf8')) as jfile:
     jdata=json.load(jfile)
 
 
-memory = []
+memory = [{"role": "system", "content": "你是一個聊天助手"}]
 openai.api_key = jdata['OPENAI_API_KEY']
 
 class main(Cog_Extensions):
+
+    @commands.command()
+    async def join(self,ctx):
+        channel = ctx.author.voice.channel
+        if channel:
+            await channel.connect()
+
+    @commands.command()
+    async def leave(ctx):
+        voice_client = ctx.guild.voice_client
+        if voice_client:
+            await voice_client.disconnect()
 
     @commands.command()
     async def ping(self,ctx):
@@ -38,19 +50,35 @@ class main(Cog_Extensions):
             await ctx.send('I could not find that member...')
 
     @commands.command()
-    async def clean(self,ctx, num: int):
-        '''Clean the chat'''
-        await ctx.channel.purge(limit=num+1)
+    async def clold(self,ctx, num: int):
+        '''Clean the oldest chat'''
+        try:
+            await ctx.channel.purge(limit=num,oldest_first=True)
+            await ctx.send(f'Sucessfully delete {num} oldest messages.')
+        except Exception as e:
+            await ctx.send(f'Error deleting messages: {e}')
+
+
+    @commands.command()
+    async def clnew(self,ctx, num: int):
+        '''Clean the newest chat'''
+        try:
+            await ctx.channel.purge(limit=num+1,oldest_first=False)
+            await ctx.send(f'Sucessfully delete {num} newest messages.')
+        except Exception as e:
+            await ctx.send(f'Error deleting messages: {e}')
+
+
     
     @commands.command()
     async def ask(self,ctx, *, question):
         '''Ask the bot a question use GPT-3.5 Turbo'''
         
         global memory
-            # 将先前的问题和答案添加到上下文中
+            
         conversation = "\n".join(memory)
 
-        # 调用 GPT-3.5 Turbo 来回答问题
+        
         response = openai.Completion.create(
             engine="text-davinci-002",
             prompt=f"{conversation}\nUser: {question}\nAI:",
@@ -63,11 +91,11 @@ class main(Cog_Extensions):
 
         answer = response.choices[0].text.strip()
 
-        # 将问题和答案添加到记忆中
+     
         memory.append(f"User: {question}")
         memory.append(f"AI: {answer}")
 
-        # 如果记忆超过 token 限制，删除早期的对话片段
+     
         while sum(len(line) + 1 for line in memory) > 4096:
             memory.pop(0)
             memory.pop(0)
@@ -78,7 +106,7 @@ class main(Cog_Extensions):
     async def generate_image(self,ctx,*, prompt):
         '''Generate image'''
         async with ctx.channel.typing():
-            # 调用 DALL-E API 生成图像
+
             response = openai.Image.create(
                 model="image-alpha-001",
                 prompt=prompt,
@@ -89,14 +117,14 @@ class main(Cog_Extensions):
 
             image_url = response['data'][0]['url']
 
-            # 使用 aiohttp 下载图像
+            
             async with aiohttp.ClientSession() as session:
                 async with session.get(image_url) as resp:
                     if resp.status != 200:
                         return await ctx.send('Could not download image...')
                     data = await resp.read()
 
-                    # 将图像发送到 Discord 频道
+                    
                     await ctx.send(file=discord.File(fp=io.BytesIO(data), filename="generated_image.png"))
 
 #def setup(bot):

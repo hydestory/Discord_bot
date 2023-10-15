@@ -1,8 +1,6 @@
 import discord
 from discord.ext import commands
 import json
-import random
-import os
 from cmds.main import main
 from cmds.react import react
 from cmds.event import event
@@ -14,13 +12,13 @@ with(open('setting.json','r',encoding='utf8')) as jfile:
 intents = discord.Intents.default()
 intents.message_content = True
 intents.dm_messages = True
-bot = commands.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(command_prefix='[', intents=intents)
 
 @bot.event
 async def on_ready():
     cogs = [main, react, event, task]
     for cog in cogs:
-        await bot.add_cog(cog(bot))
+        bot.add_cog(cog(bot))
     print('Bot is ready.')
 
 @bot.command()
